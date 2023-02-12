@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using SharpDX;
 using BoundingBox = Microsoft.Xna.Framework.BoundingBox;
 using Color = Microsoft.Xna.Framework.Color;
-using Matrix = Microsoft.Xna.Framework.Matrix;
 using Quaternion = Microsoft.Xna.Framework.Quaternion;
 using Vector2 = Microsoft.Xna.Framework.Vector2;
 using Vector3 = Microsoft.Xna.Framework.Vector3;
@@ -28,6 +26,7 @@ namespace Asteroids3D
         private Random _rng;
         private Camera _camera;
         private List<BoxCollider> _colliders;
+        private int _frame;
 
         private int _lastScrollValue;
 
@@ -59,12 +58,26 @@ namespace Asteroids3D
             {
                 MeshRenderer = new MeshRenderer
                 {
-                    Mesh = new ConeMesh(GraphicsDevice, 1f, 0.5f, Color.Green, Color.Red, 4),
+                    Mesh = new ConeMesh(GraphicsDevice, 1f, 0.5f, Color.Green, Color.Red, 100),
                     Effect = _fx
                 }
             };
-            _octree = new Octree(new BoundingBox(Vector3.One * -5f, Vector3.One * 5f), _fx);
+            _octree = new Octree(new BoundingBox(Vector3.One * -5f, Vector3.One * 5f));
             _rng = new Random();
+            Gizmos.Init(GraphicsDevice, _camera);
+
+
+            for (int i = 0; i < 30; i++)
+            {
+                Vector3 size = Vector3.One / 10f;
+                Vector3 position = new(_rng.NextFloat(-4f, 4f), _rng.NextFloat(-4f, 4f), _rng.NextFloat(-4f, 4f));
+                BoundingBox box = new(position, position + size);
+                BoxCollider col = new(box);
+                _colliders.Add(col);
+            }
+
+            Mouse.SetPosition(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
+
             base.Initialize();
         }
 
@@ -79,42 +92,46 @@ namespace Asteroids3D
         {
             KeyboardState ks = Keyboard.GetState();
             MouseState ms = Mouse.GetState();
+            _frame++;
             if (ks.IsKeyDown(Keys.Escape))
                 Exit();
 
             if (ks.IsKeyDown(Keys.Up))
-                _cone.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix.CreateRotationX(-0.05f));
+                _cone.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, -0.05f) * _cone.Rotation;
             if (ks.IsKeyDown(Keys.Down))
-                _cone.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix.CreateRotationX(0.05f));
+                _cone.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, 0.05f) * _cone.Rotation;
             if (ks.IsKeyDown(Keys.Left))
-                _cone.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix.CreateRotationY(-0.05f));
+                _cone.Rotation = Quaternion.CreateFromAxisAngle(-Vector3.UnitZ, -0.05f) * _cone.Rotation;
             if (ks.IsKeyDown(Keys.Right))
-                _cone.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix.CreateRotationY(0.05f));
+                _cone.Rotation = Quaternion.CreateFromAxisAngle(-Vector3.UnitZ, 0.05f) * _cone.Rotation;
 
             if (ks.IsKeyDown(Keys.W))
                 _camera.Position += Vector3.Transform(new Vector3(0f, 0f, -0.1f), _camera.Rotation);
             if (ks.IsKeyDown(Keys.S))
                 _camera.Position += Vector3.Transform(new Vector3(0f, 0f, 0.1f), _camera.Rotation);
             if (ks.IsKeyDown(Keys.A))
-                _camera.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix.CreateFromYawPitchRoll(0f, 0f, 0.01f));
+                _camera.Rotation *= Quaternion.CreateFromAxisAngle(-Vector3.UnitZ, -0.01f);
             if (ks.IsKeyDown(Keys.D))
-                _camera.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix.CreateFromYawPitchRoll(0f, 0f, -0.01f));
+                _camera.Rotation *= Quaternion.CreateFromAxisAngle(-Vector3.UnitZ, 0.01f);
 
             Vector2 center = new(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
-            Vector2 mouseDelta = new(center.X - ms.X, center.Y - ms.Y);
+            Vector2 mouseDelta = new Vector2((center.X - ms.X) / GraphicsDevice.Viewport.Width, (center.Y - ms.Y) / GraphicsDevice.Viewport.Height);
             float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
             if (mouseDelta != Vector2.Zero)
             {
-                Debug.WriteLine(mouseDelta);
-                Mouse.SetPosition(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
-                _camera.Rotation *= Quaternion.CreateFromRotationMatrix(Matrix.CreateFromYawPitchRoll(MathHelper.ToRadians(mouseDelta.X * deltaTime * 20f), MathHelper.ToRadians(mouseDelta.Y * deltaTime * 20f), 0f));
+                if (_frame % 4 == 0)
+                {
+                    Mouse.SetPosition(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
+                    _lastMouse = ms;
+                }
+                _camera.Rotation *= Quaternion.CreateFromYawPitchRoll(MathHelper.ToRadians(mouseDelta.X * deltaTime * 8000f), MathHelper.ToRadians(mouseDelta.Y * deltaTime * 8000f), 0f);
             }
             _camera.Update(gameTime);
 
             if (ks.IsKeyDown(Keys.Space))
             {
                 Vector3 size = Vector3.One / 10f;
-                Vector3 position = new(_rng.NextFloat(-4f, 3f), _rng.NextFloat(-4f, 3f), _rng.NextFloat(-4f, 3f));
+                Vector3 position = new(_rng.NextFloat(-4f, 4f), _rng.NextFloat(-4f, 4f), _rng.NextFloat(-4f, 4f));
                 BoundingBox box = new(position, position + size);
                 BoxCollider col = new(box);
                 _colliders.Add(col);
@@ -125,7 +142,6 @@ namespace Asteroids3D
                 _octree.Add(collider);
 
             _lastKeyboard = ks;
-            _lastMouse = ms;
             base.Update(gameTime);
         }
 
@@ -135,6 +151,8 @@ namespace Asteroids3D
 
             _cone.Draw(GraphicsDevice, _camera.View);
             _octree.Draw(GraphicsDevice, _camera.View);
+            foreach (BoxCollider collider in _colliders)
+                collider.Draw(GraphicsDevice, _camera.View);
             base.Draw(gameTime);
         }
     }

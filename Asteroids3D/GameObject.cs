@@ -11,8 +11,10 @@ namespace Asteroids3D
         public Vector3 Position { get; set; } = Vector3.Zero;
         public Vector3 Scale { get; set; } = Vector3.One;
         public Quaternion Rotation { get; set; } = Quaternion.Identity;
+        public Vector3 Pivot { get; set; } = Vector3.Down / 2f;
 
-        public Matrix Transform => Matrix.CreateTranslation(Position) * Matrix.CreateFromQuaternion(Rotation) * Matrix.CreateScale(Scale);
+        public Matrix Transform => Matrix.CreateTranslation(Pivot) * Matrix.CreateScale(Scale) *
+                                   Matrix.CreateFromQuaternion(Rotation) * Matrix.CreateTranslation(Position);
 
         public void Update(GameTime time)
         {

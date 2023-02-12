@@ -13,17 +13,11 @@ namespace Asteroids3D
 
         private BoundingBox _box;
         private Node _root;
-        private VertexPositionColor[] _verts;
-        private int[] _indices;
-        private BasicEffect _fx;
 
-        public Octree(BoundingBox box, BasicEffect effect)
+        public Octree(BoundingBox box)
         {
             _box = box;
-            _fx = effect;
             _root = new Node();
-            _verts = new VertexPositionColor[8];
-            _indices = new int[24];
         }
 
         public void Add(BoxCollider value)
@@ -53,40 +47,14 @@ namespace Asteroids3D
 
         public void Draw(GraphicsDevice graphics, Matrix view)
         {
-            _fx.View = view;
-            _fx.World = Matrix.Identity;
             Draw(graphics, _root, _box);
         }
 
         private void Draw(GraphicsDevice graphics, Node node, BoundingBox box)
         {
-            _verts[0] = new VertexPositionColor(box.Min, Color.Green);
-            _verts[1] = new VertexPositionColor(new Vector3(box.Max.X, box.Min.Y, box.Min.Z), Color.Green);
-            _verts[2] = new VertexPositionColor(new Vector3(box.Max.X, box.Min.Y, box.Max.Z), Color.Green);
-            _verts[3] = new VertexPositionColor(new Vector3(box.Min.X, box.Min.Y, box.Max.Z), Color.Green);
-            _verts[4] = new VertexPositionColor(new Vector3(box.Min.X, box.Max.Y, box.Min.Z), Color.Green);
-            _verts[5] = new VertexPositionColor(new Vector3(box.Max.X, box.Max.Y, box.Min.Z), Color.Green);
-            _verts[6] = new VertexPositionColor(box.Max, Color.Green);
-            _verts[7] = new VertexPositionColor(new Vector3(box.Min.X, box.Max.Y, box.Max.Z), Color.Green);
-
-            for (int i = 0; i < 4; i++)
-            {
-                // Connect lower plane
-                _indices[i * 6 + 0] = i;
-                _indices[i * 6 + 1] = (i + 1) % 4;
-                // Connect top plane
-                _indices[i * 6 + 2] = i + 4;
-                _indices[i * 6 + 3] = (i + 1) % 4 + 4;
-                // Connect down and top points
-                _indices[i * 6 + 4] = i;
-                _indices[i * 6 + 5] = i + 4;
-            }
-
-            foreach (EffectPass pass in _fx.CurrentTechnique.Passes)
-            {
-                pass.Apply();
-                graphics.DrawUserIndexedPrimitives(PrimitiveType.LineList, _verts, 0, _verts.Length, _indices, 0, _indices.Length / 2);
-            }
+            Vector3 center = (box.Min + box.Max) / 2f;
+            Vector3 size = box.Max - box.Min;
+            Gizmos.DrawWireframeCube(center, size, Color.Green);
 
             if (!node.IsLeaf)
                 for (int i = 0; i < Node.CHILDREN_COUNT; i++)
