@@ -23,7 +23,7 @@ namespace Asteroids3D
 
         public void Draw(GraphicsDevice device, Matrix view)
         {
-            MeshRenderer.Draw(device, Transform, view);
+            MeshRenderer?.Draw(device, Transform, view);
         }
     }
 }

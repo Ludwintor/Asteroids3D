@@ -7,11 +7,12 @@ namespace Asteroids3D
     {
         public MeshBase Mesh { get; set; }
         public BasicEffect Effect { get; set; }
+        public Quaternion Rotation { get; set; }
 
         public void Draw(GraphicsDevice device, Matrix transform, Matrix view)
         {
             Mesh.ReadBuffers(device);
-            Effect.World = transform;
+            Effect.World = transform * Matrix.CreateFromQuaternion(Rotation);
             Effect.View = view;
             foreach (EffectPass pass in Effect.CurrentTechnique.Passes)
             {

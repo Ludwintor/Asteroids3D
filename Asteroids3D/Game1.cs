@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Asteroids3D.Player;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -21,7 +22,7 @@ namespace Asteroids3D
         private MouseState _lastMouse;
 
         private BasicEffect _fx;
-        private GameObject _cone;
+        private PlayerController _player;
         private Octree _octree;
         private Random _rng;
         private Camera _camera;
@@ -47,18 +48,21 @@ namespace Asteroids3D
             _colliders = new List<BoxCollider>();
             _camera = new Camera(this)
             {
-                Position = new Vector3(0f, 0f, 5f)
+                Position = new Vector3(0f, 1.2f, 5f),
+                Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, MathHelper.ToRadians(70f))
             };
+            CameraFollow follow = new(_camera);
             _fx = new BasicEffect(GraphicsDevice)
             {
                 VertexColorEnabled = true,
                 Projection = _camera.Projection
             };
-            _cone = new GameObject
+            _player = new PlayerController(follow)
             {
+                Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, -MathHelper.PiOver2),
                 MeshRenderer = new MeshRenderer
                 {
-                    Mesh = new ConeMesh(GraphicsDevice, 1f, 0.5f, Color.Green, Color.Red, 100),
+                    Mesh = new ConeMesh(GraphicsDevice, 1f, 0.5f, Color.Green, Color.Red, 30),
                     Effect = _fx
                 }
             };
@@ -97,36 +101,14 @@ namespace Asteroids3D
                 Exit();
 
             if (ks.IsKeyDown(Keys.Up))
-                _cone.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, -0.05f) * _cone.Rotation;
+                _player.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, -0.05f) * _player.Rotation;
             if (ks.IsKeyDown(Keys.Down))
-                _cone.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, 0.05f) * _cone.Rotation;
+                _player.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, 0.05f) * _player.Rotation;
             if (ks.IsKeyDown(Keys.Left))
-                _cone.Rotation = Quaternion.CreateFromAxisAngle(-Vector3.UnitZ, -0.05f) * _cone.Rotation;
+                _player.Rotation = Quaternion.CreateFromAxisAngle(-Vector3.UnitZ, -0.05f) * _player.Rotation;
             if (ks.IsKeyDown(Keys.Right))
-                _cone.Rotation = Quaternion.CreateFromAxisAngle(-Vector3.UnitZ, 0.05f) * _cone.Rotation;
-
-            if (ks.IsKeyDown(Keys.W))
-                _camera.Position += Vector3.Transform(new Vector3(0f, 0f, -0.1f), _camera.Rotation);
-            if (ks.IsKeyDown(Keys.S))
-                _camera.Position += Vector3.Transform(new Vector3(0f, 0f, 0.1f), _camera.Rotation);
-            if (ks.IsKeyDown(Keys.A))
-                _camera.Rotation *= Quaternion.CreateFromAxisAngle(-Vector3.UnitZ, -0.01f);
-            if (ks.IsKeyDown(Keys.D))
-                _camera.Rotation *= Quaternion.CreateFromAxisAngle(-Vector3.UnitZ, 0.01f);
-
-            Vector2 center = new(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
-            Vector2 mouseDelta = new Vector2((center.X - ms.X) / GraphicsDevice.Viewport.Width, (center.Y - ms.Y) / GraphicsDevice.Viewport.Height);
-            float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
-            if (mouseDelta != Vector2.Zero)
-            {
-                if (_frame % 4 == 0)
-                {
-                    Mouse.SetPosition(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
-                    _lastMouse = ms;
-                }
-                _camera.Rotation *= Quaternion.CreateFromYawPitchRoll(MathHelper.ToRadians(mouseDelta.X * deltaTime * 8000f), MathHelper.ToRadians(mouseDelta.Y * deltaTime * 8000f), 0f);
-            }
-            _camera.Update(gameTime);
+                _player.Rotation = Quaternion.CreateFromAxisAngle(-Vector3.UnitZ, 0.05f) * _player.Rotation;
+            _player.Update(gameTime, _frame, new(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2));
 
             if (ks.IsKeyDown(Keys.Space))
             {
@@ -149,7 +131,7 @@ namespace Asteroids3D
         {
             GraphicsDevice.Clear(Color.Black);
 
-            _cone.Draw(GraphicsDevice, _camera.View);
+            _player.Draw(GraphicsDevice, _camera.View);
             _octree.Draw(GraphicsDevice, _camera.View);
             foreach (BoxCollider collider in _colliders)
                 collider.Draw(GraphicsDevice, _camera.View);

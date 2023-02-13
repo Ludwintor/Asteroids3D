@@ -21,6 +21,8 @@ namespace Asteroids3D
 
         public Quaternion Rotation { get; set; } = Quaternion.Identity;
 
+        public Matrix Transform => Matrix.CreateFromQuaternion(Rotation) * Matrix.CreateTranslation(Position);
+
         public override void Update(GameTime gameTime)
         {
             UpdateLookAt();
