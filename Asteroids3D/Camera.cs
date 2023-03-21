@@ -9,7 +9,7 @@ namespace Asteroids3D
         public Camera(Game game) : base(game)
         {
             Projection = Matrix.CreatePerspectiveFieldOfView(
-                MathHelper.PiOver4,
+                MathHelper.PiOver2,
                 game.GraphicsDevice.Viewport.AspectRatio, 0.1f, 1000f);
         }
 

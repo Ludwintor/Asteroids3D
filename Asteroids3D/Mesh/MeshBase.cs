@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace Asteroids3D
+namespace Asteroids3D.Mesh
 {
     public abstract class MeshBase : IDisposable
     {
@@ -40,6 +41,16 @@ namespace Asteroids3D
         {
             _indices.Add(a);
             _indices.Add(b);
+            _indices.Add(c);
+        }
+
+        protected void AddQuad(int a, int b, int c, int d)
+        {
+            _indices.Add(a);
+            _indices.Add(b);
+            _indices.Add(c);
+            _indices.Add(b);
+            _indices.Add(d);
             _indices.Add(c);
         }
 

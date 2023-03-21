@@ -1,9 +1,10 @@
-﻿using Microsoft.Xna.Framework;
+﻿using System;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace Asteroids3D
+namespace Asteroids3D.Mesh
 {
-    public class MeshRenderer
+    public class MeshRenderer : IDisposable
     {
         public MeshBase Mesh { get; set; }
         public BasicEffect Effect { get; set; }
@@ -19,6 +20,12 @@ namespace Asteroids3D
                 pass.Apply();
                 device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, Mesh.IndexCount / 3);
             }
+        }
+
+        public void Dispose()
+        {
+            Mesh?.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

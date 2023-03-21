@@ -2,7 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace Asteroids3D
+namespace Asteroids3D.Mesh
 {
     public class ConeMesh : MeshBase
     {

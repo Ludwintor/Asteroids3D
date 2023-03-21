@@ -4,7 +4,7 @@ using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace Asteroids3D
+namespace Asteroids3D.Physics
 {
     public class Octree
     {
@@ -20,12 +20,12 @@ namespace Asteroids3D
             _root = new Node();
         }
 
-        public void Add(BoxCollider value)
+        public void Add(Collider value)
         {
             Add(_root, 0, _box, value);
         }
 
-        public void Remove(BoxCollider value)
+        public void Remove(Collider value)
         {
             Remove(_root, null, _box, value);
         }
@@ -35,22 +35,22 @@ namespace Asteroids3D
             ClearNode(_root);
         }
 
-        public void Query(BoundingBox queryBox, List<BoxCollider> results)
+        public void Query(BoundingBox queryBox, List<Collider> results)
         {
             Query(_root, _box, queryBox, results);
         }
 
-        public void FindAllIntersections(List<Pair<BoxCollider>> results)
+        public void FindAllIntersections(List<Pair<Collider>> results)
         {
-
+            FindAllIntersections(_root, results);
         }
 
-        public void Draw(GraphicsDevice graphics, Matrix view)
+        public void Draw()
         {
-            Draw(graphics, _root, _box);
+            Draw(_root, _box);
         }
 
-        private void Draw(GraphicsDevice graphics, Node node, BoundingBox box)
+        private void Draw(Node node, BoundingBox box)
         {
             Vector3 center = (box.Min + box.Max) / 2f;
             Vector3 size = box.Max - box.Min;
@@ -60,7 +60,7 @@ namespace Asteroids3D
                 for (int i = 0; i < Node.CHILDREN_COUNT; i++)
                 {
                     BoundingBox childBox = ComputeBox(box, (Octant)i);
-                    Draw(graphics, node.Children[i], childBox);
+                    Draw(node.Children[i], childBox);
                 }
         }
 
@@ -130,10 +130,10 @@ namespace Asteroids3D
             return Octant.None;
         }
 
-        private void Add(Node node, int depth, BoundingBox box, BoxCollider value)
+        private void Add(Node node, int depth, BoundingBox box, Collider value)
         {
             Debug.Assert(node != null);
-            Debug.Assert(box.Contains(value.BoundingBox) == ContainmentType.Contains);
+            Debug.Assert(box.Contains(value.BoxBounds) == ContainmentType.Contains);
             if (node.IsLeaf)
             {
                 if (depth >= MAX_DEPTH || node.Values.Count < THRESHOLD)
@@ -148,7 +148,7 @@ namespace Asteroids3D
             }
             else
             {
-                Octant octant = GetOctant(box, value.BoundingBox);
+                Octant octant = GetOctant(box, value.BoxBounds);
                 if (octant != Octant.None)
                     Add(node.GetChild(octant), depth + 1, ComputeBox(box, octant), value);
                 else
@@ -164,21 +164,22 @@ namespace Asteroids3D
 
             for (int i = 0; i < node.Values.Count; i++)
             {
-                BoxCollider value = node.Values[i];
-                Octant octant = GetOctant(box, value.BoundingBox);
+                Collider value = node.Values[i];
+                Octant octant = GetOctant(box, value.BoxBounds);
                 if (octant != Octant.None)
                 {
                     node.GetChild(octant).Values.Add(value);
-                    node.Values.RemoveAt(i);
+                    node.Values[i] = node.Values[^1];
+                    node.Values.RemoveAt(node.Values.Count - 1);
                     i--;
                 }
             }
         }
 
-        private void Remove(Node node, Node parent, BoundingBox box, BoxCollider value)
+        private void Remove(Node node, Node parent, BoundingBox box, Collider value)
         {
             Debug.Assert(node != null);
-            Debug.Assert(box.Contains(value.BoundingBox) == ContainmentType.Contains);
+            Debug.Assert(box.Contains(value.BoxBounds) == ContainmentType.Contains);
             if (node.IsLeaf)
             {
                 RemoveValue(node, value);
@@ -187,7 +188,7 @@ namespace Asteroids3D
             }
             else
             {
-                Octant octant = GetOctant(box, value.BoundingBox);
+                Octant octant = GetOctant(box, value.BoxBounds);
                 if (octant != Octant.None)
                     Remove(node.GetChild(octant), node, ComputeBox(box, octant), value);
                 else
@@ -195,7 +196,7 @@ namespace Asteroids3D
             }
         }
 
-        private void RemoveValue(Node node, BoxCollider value)
+        private void RemoveValue(Node node, Collider value)
         {
             int index = node.Values.IndexOf(value);
             node.Values[index] = node.Values[^1];
@@ -224,12 +225,12 @@ namespace Asteroids3D
             }
         }
 
-        private void Query(Node node, BoundingBox box, BoundingBox queryBox, List<BoxCollider> results)
+        private void Query(Node node, BoundingBox box, BoundingBox queryBox, List<Collider> results)
         {
             Debug.Assert(node != null);
             Debug.Assert(queryBox.Intersects(box));
-            foreach (BoxCollider value in node.Values)
-                if (queryBox.Intersects(value.BoundingBox))
+            foreach (Collider value in node.Values)
+                if (queryBox.Intersects(value.BoxBounds))
                     results.Add(value);
             if (!node.IsLeaf)
             {
@@ -240,6 +241,34 @@ namespace Asteroids3D
                         Query(node.Children[i], childBox, queryBox, results);
                 }
             }
+        }
+
+        private void FindAllIntersections(Node node, List<Pair<Collider>> results)
+        {
+            for (int i = 1; i < node.Values.Count; i++)
+                for (int j = 0; j < i; j++)
+                    if (node.Values[i].Intersects(node.Values[j]))
+                        results.Add(new Pair<Collider>(node.Values[i], node.Values[j]));
+            if (!node.IsLeaf)
+            {
+                foreach (Node child in node.Children)
+                {
+                    foreach (Collider value in node.Values)
+                        FindIntersectionsInDescendants(child, value, results);
+
+                    FindAllIntersections(child, results);
+                }
+            }
+        }
+
+        private void FindIntersectionsInDescendants(Node node, Collider value, List<Pair<Collider>> results)
+        {
+            foreach (Collider other in node.Values)
+                if (value.Intersects(other))
+                    results.Add(new Pair<Collider>(value, other));
+            if (!node.IsLeaf)
+                foreach (Node child in node.Children)
+                    FindIntersectionsInDescendants(child, value, results);
         }
 
         private void ClearNode(Node node)
@@ -255,7 +284,7 @@ namespace Asteroids3D
             public const int CHILDREN_COUNT = 8;
 
             public Node[] Children;
-            public List<BoxCollider> Values = new();
+            public List<Collider> Values = new();
 
             public bool IsLeaf { get; private set; }
 

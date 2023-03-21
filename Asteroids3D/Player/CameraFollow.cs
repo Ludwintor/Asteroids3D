@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Asteroids3D.Core;
+using Microsoft.Xna.Framework;
 
 namespace Asteroids3D.Player
 {
@@ -10,7 +11,7 @@ namespace Asteroids3D.Player
 
         private Camera _camera;
 
-        public GameObject Target { get; set; }
+        public Transform Target { get; set; }
 
         public CameraFollow(Camera camera)
         {

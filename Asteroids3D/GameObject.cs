@@ -1,29 +1,34 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Asteroids3D.Core;
+using Asteroids3D.Mesh;
+using Asteroids3D.Physics;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace Asteroids3D
 {
-    public class GameObject
+    public abstract class GameObject
     {
-        public MeshRenderer MeshRenderer { get; set; }
-        public BoxCollider Collider { get; set; }
-
-        public Vector3 Position { get; set; } = Vector3.Zero;
-        public Vector3 Scale { get; set; } = Vector3.One;
-        public Quaternion Rotation { get; set; } = Quaternion.Identity;
-        public Vector3 Pivot { get; set; } = Vector3.Down / 2f;
-
-        public Matrix Transform => Matrix.CreateTranslation(Pivot) * Matrix.CreateScale(Scale) *
-                                   Matrix.CreateFromQuaternion(Rotation) * Matrix.CreateTranslation(Position);
-
-        public void Update(GameTime time)
+        public GameObject(Game1 game)
         {
-
+            Game = game;
         }
 
-        public void Draw(GraphicsDevice device, Matrix view)
+        public MeshRenderer MeshRenderer { get; set; }
+        public SphereCollider Collider { get; set; }
+        public Transform Transform { get; } = new Transform();
+
+        protected Game1 Game { get; }
+
+        public virtual void Update(GameTime time) { }
+
+        public virtual void Draw()
         {
-            MeshRenderer?.Draw(device, Transform, view);
+            MeshRenderer?.Draw(Game.GraphicsDevice, Transform.Matrix, Game.MainCamera.View);
+        }
+
+        public virtual void Destroy()
+        {
+            MeshRenderer?.Dispose();
         }
     }
 }
